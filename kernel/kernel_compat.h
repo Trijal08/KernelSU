@@ -32,4 +32,7 @@ extern ssize_t ksu_kernel_read_compat(struct file *p, void *buf, size_t count,
 extern ssize_t ksu_kernel_write_compat(struct file *p, const void *buf,
 				       size_t count, loff_t *pos);
 
+#ifdef CONFIG_KSU_SUSFS
+extern int ksu_access_ok(const void *addr, unsigned long size);
+#endif
 #endif

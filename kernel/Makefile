@@ -51,4 +51,37 @@ ccflags-y += -DEXPECTED_HASH=\"$(KSU_EXPECTED_HASH)\"
 ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-int-conversion
 ccflags-y += -Wno-declaration-after-statement -Wno-unused-function
 
+ifeq ($(shell test -e $(srctree)/fs/susfs.c; echo $$?),0)
+ifdef KSU_SUSFS
+ccflags-y += -DKSU_SUSFS
+endif
+ifdef KSU_SUSFS_SUS_MOUNT
+ccflags-y += -DKSU_SUSFS_SUS_MOUNT
+endif
+ifdef KSU_SUSFS_AUTO_ADD_DEFAULT_MOUNT
+ccflags-y += -DKSU_SUSFS_AUTO_ADD_DEFAULT_MOUNT
+endif
+ifdef KSU_SUSFS_AUTO_ADD_BIND_MOUNT
+ccflags-y += -DKSU_SUSFS_AUTO_ADD_BIND_MOUNT
+endif
+ifdef KSU_SUSFS_TRY_UMOUNT
+ccflags-y += -DKSU_SUSFS_TRY_UMOUNT
+endif
+ifdef KSU_SUSFS_AUTO_ADD_TRY_UMOUNT
+ccflags-y += -DKSU_SUSFS_AUTO_ADD_TRY_UMOUNT
+endif
+ifdef KSU_SUSFS_ENABLE_LOG
+ccflags-y += -DKSU_SUSFS_ENABLE_LOG
+endif
+ifdef KSU_SUSFS_HIDE_KALLSYMS
+ccflags-y += -DKSU_SUSFS_HIDE_KALLSYMS
+endif
+ifdef KSU_SUSFS_SPOOF_BOOTCONFIG
+ccflags-y += -DKSU_SUSFS_SPOOF_BOOTCONFIG
+endif
+else
+$(info -- You have not integrated susfs into your kernel.)
+$(info -- Read: https://gitlab.com/simonpunk/susfs4ksu)
+endif
+
 # Keep a new line here!! Because someone may append config

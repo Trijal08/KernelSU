@@ -86,3 +86,10 @@ long ksu_strncpy_from_user_nofault(char *dst, const void __user *unsafe_addr,
 {
 	return strncpy_from_user_nofault(dst, unsafe_addr, count);
 }
+
+#ifdef CONFIG_KSU_SUSFS
+int ksu_access_ok(const void *addr, unsigned long size)
+{
+	return access_ok(addr, size);
+}
+#endif
