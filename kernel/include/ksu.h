@@ -23,4 +23,12 @@ static inline int endswith(const char *s, const char *t)
 
 extern struct cred* ksu_cred;
 
+#ifdef CONFIG_KSU_SUSFS
+// Backup of the live SELinux policy snapshotted before KSU injects its own
+// rules. Populated in kernel/selinux/rules.c::apply_kernelsu_rules() and
+// consumed by the susfs SELinux-hide data provider (feature/selinux_hide.c)
+// and by the host kernel's selinuxfs.c/hooks.c susfs hooks (via fake_state).
+extern struct selinux_policy *backup_sepolicy;
+#endif
+
 #endif

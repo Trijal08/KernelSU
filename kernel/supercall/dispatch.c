@@ -1,3 +1,13 @@
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/namei.h>
+#include <linux/susfs.h>
+#include "objsec.h"
+#endif // #ifdef CONFIG_KSU_SUSFS
+
+#ifdef CONFIG_KSU_SUSFS
+bool susfs_is_boot_completed_triggered __read_mostly = false;
+#endif // #ifdef CONFIG_KSU_SUSFS
+
 static int do_grant_root(void __user *arg)
 {
 	int ret;
@@ -87,6 +97,9 @@ static int do_report_event(void __user *arg)
 			boot_complete_lock = true;
 			pr_info("boot_complete triggered\n");
 			on_boot_completed();
+#ifdef CONFIG_KSU_SUSFS
+        	susfs_start_sdcard_monitor_fn();
+#endif // #ifdef CONFIG_KSU_SUSFS
 		}
 		break;
 	}
@@ -423,6 +436,7 @@ static int do_manage_mark(void __user *arg)
 
 	switch (cmd.operation) {
 		case KSU_MARK_GET: {
+#ifndef CONFIG_KSU_SUSFS
 			// on this one, we return seccomp status of a pid instead
 			// at the very least we have partial featureset
 			ret = ksu_get_task_mark(cmd.pid);
@@ -432,6 +446,16 @@ static int do_manage_mark(void __user *arg)
 			}
 			cmd.result = (u32)ret;
 			break;
+#else
+if (susfs_is_current_proc_umounted()) {
+            ret = 0; // SYSCALL_TRACEPOINT is NOT flagged
+        } else {
+            ret = 1; // SYSCALL_TRACEPOINT is flagged
+        }
+        pr_info("manage_mark: ret for pid %d: %d\n", cmd.pid, ret);
+        cmd.result = (u32)ret;
+        break;
+#endif // #ifndef CONFIG_KSU_SUSFS
 		}
 #if 0 // TODO: revisit this sometime
 		case KSU_MARK_MARK: { break; }
@@ -690,6 +714,46 @@ static int do_disable_escape_to_root(void __user *arg)
 	return 0;
 }
 
+static int do_get_hook_type(void __user *arg)
+{
+    struct ksu_hook_type_cmd cmd = { 0 };
+
+#if defined(CONFIG_KSU_SUSFS)
+    const char *type = "De-inlined";
+#elif defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK) || defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE)
+    const char *type = "Hookless";
+#elif defined(CONFIG_KSU_KPROBES_KSUD)
+    const char *type = "Hybrid";
+#else
+    const char *type = "Manual";
+#endif
+
+    strscpy(cmd.hook_type, type, sizeof(cmd.hook_type));
+
+    if (copy_to_user(arg, &cmd, sizeof(cmd))) {
+        pr_err("get_hook_type: copy_to_user failed\n");
+        return -EFAULT;
+    }
+
+    return 0;
+}
+
+static int do_get_susfs_version(void __user *arg)
+{
+    struct ksu_susfs_version_cmd cmd = { 0 };
+
+#ifdef CONFIG_KSU_SUSFS
+    strscpy(cmd.version, SUSFS_VERSION, sizeof(cmd.version));
+#else
+    strscpy(cmd.version, "Not supported", sizeof(cmd.version));
+#endif
+
+    if (copy_to_user(arg, &cmd, sizeof(cmd))) {
+        return -EFAULT;
+    }
+    return 0;
+}
+
 // IOCTL handlers mapping table
 static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	{ .cmd = KSU_IOCTL_GRANT_ROOT, .name = "GRANT_ROOT", .handler = do_grant_root, .perm_check = allowed_for_su },
@@ -716,6 +780,8 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	{ .cmd = KSU_IOCTL_SET_INIT_PGRP, .name = "SET_INIT_PGRP", .handler = do_set_init_pgrp, .perm_check = only_root },
 	{ .cmd = KSU_IOCTL_GET_SULOG_FD, .name = "GET_SULOG_FD", .handler = do_get_sulog_fd, .perm_check = only_root },
 	{ .cmd = KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT, .name = "DISABLE_ESCAPE_TO_ROOT", .handler = do_disable_escape_to_root, .perm_check = only_root },
+	{ .cmd = KSU_IOCTL_HOOK_TYPE, .name = "HOOK_TYPE", .handler = do_get_hook_type, .perm_check = manager_or_root },
+	{ .cmd = KSU_IOCTL_SUSFS_VERSION, .name = "SUSFS_VERSION", .handler = do_get_susfs_version, .perm_check = manager_or_root },
 	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL } // Sentinel
 };
 
