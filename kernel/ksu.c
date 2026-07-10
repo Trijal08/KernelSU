@@ -153,6 +153,10 @@
 #if defined(CONFIG_KSU_KPROBES_KSUD) && !defined(CONFIG_KSU_TAMPER_SYSCALL_TABLE) && !defined(CONFIG_KSU_HACK_ARM64_BRANCH_LINK)
 #include "hook/kp_ksud.c"
 #endif
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs.h>
+#endif // #ifdef CONFIG_KSU_SUSFS
+
 
 // track backports and other quirks here
 // ref: kernel_compat.c, Makefile
@@ -263,6 +267,10 @@ static int __init kernelsu_init(void)
 	ksu_allowlist_init();
 
 	ksu_throne_tracker_init();
+
+#ifdef CONFIG_KSU_SUSFS
+    	susfs_init();
+#endif // #ifdef CONFIG_KSU_SUSFS
 
 	ksu_ksud_init();
 
