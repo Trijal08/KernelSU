@@ -240,6 +240,12 @@ static bool is_uid_exist(uid_t uid, char *package, void *data)
 	return exist;
 }
 
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+// Defined in <linux/susfs.h>, which the unity build includes after this file;
+// forward-declare so the bitmap renewal below compiles.
+void susfs_parse_priority_app_strings(void);
+#endif // #ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+
 static void throne_tracker_fn(bool prune_only)
 {
 	struct file *fp = filp_open(SYSTEM_PACKAGES_LIST_PATH, O_RDONLY, 0);
@@ -365,6 +371,11 @@ out:
 		list_del(&np->list);
 		kfree(np);
 	}	
+#ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+	// Renew the priority uid bitmap filter after a full (non-prune) app re-track.
+	if (!prune_only)
+		susfs_parse_priority_app_strings();
+#endif // #ifdef CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
 }
 
 static int throne_tracker_thread(void *data)
