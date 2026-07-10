@@ -14,7 +14,15 @@
 #ifndef __KSU_H_SLOW_AVC_AUDIT_HOOK
 #define __KSU_H_SLOW_AVC_AUDIT_HOOK
 
+#ifdef CONFIG_KSU_SUSFS
+// selinux_hide.c defines this non-static so the host kernel's susfs selinux
+// hooks (selinuxfs.c/hooks.c from 50_add_susfs) can reach it via `extern`.
+// This header shares the same unity TU and is included before selinux_hide.c,
+// so match that external linkage here instead of a conflicting static.
+extern bool ksu_selinux_hide_enabled;
+#else
 static bool ksu_selinux_hide_enabled;
+#endif
 static u32 cached_su_sid;
 static u32 priv_app_sid __read_mostly = 0;
 
