@@ -4,6 +4,14 @@
 
 #define ALL NULL
 
+#ifdef CONFIG_KSU_SUSFS
+// Snapshot of the live SELinux policy taken before KSU injects its rules.
+// fake_state.policy points here so the host's susfs selinux hooks
+// (my_write_context / my_write_access / my_setprocattr) can canonicalize
+// contexts against the *unpatched* policy, hiding KSU's added types/rules.
+struct selinux_policy *backup_sepolicy;
+#endif
+
 #if ((!defined(KSU_COMPAT_USE_SELINUX_STATE)) || LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
 extern int avc_ss_reset(u32 seqno);
 #else
@@ -147,6 +155,36 @@ void apply_kernelsu_rules()
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	struct selinux_policy *pol, *old_pol = selinux_state.policy;
 	mutex_lock(&selinux_state.policy_mutex);
+
+#ifdef CONFIG_KSU_SUSFS
+	// Snapshot the pristine (pre-KSU) policy exactly once, before we inject
+	// any KSU rules below. ksu_dup_sepolicy() only re-reads the policydb and
+	// leaves ->sidtab aliasing the live one, so give the backup its own sidtab.
+	if (!backup_sepolicy) {
+		backup_sepolicy =
+			ksu_dup_sepolicy(rcu_dereference_protected(old_pol, lockdep_is_held(&selinux_state.policy_mutex)));
+		if (IS_ERR(backup_sepolicy)) {
+			pr_err("susfs: failed to create backup sepolicy: %ld\n", PTR_ERR(backup_sepolicy));
+			backup_sepolicy = NULL;
+		} else {
+			backup_sepolicy->sidtab = kzalloc(sizeof(*backup_sepolicy->sidtab), GFP_KERNEL);
+			if (!backup_sepolicy->sidtab) {
+				pr_err("susfs: failed to alloc backup sidtab\n");
+				ksu_destroy_sepolicy(backup_sepolicy);
+				backup_sepolicy = NULL;
+			} else if (policydb_load_isids(&backup_sepolicy->policydb, backup_sepolicy->sidtab)) {
+				pr_err("susfs: failed to load isids for backup sepolicy\n");
+				kfree(backup_sepolicy->sidtab);
+				ksu_destroy_sepolicy(backup_sepolicy);
+				backup_sepolicy = NULL;
+			} else {
+				pr_info("susfs: backup sepolicy success! latest_granting=%d\n",
+					backup_sepolicy->latest_granting);
+			}
+		}
+	}
+#endif
+
 	pol = ksu_dup_sepolicy(rcu_dereference_protected(old_pol, lockdep_is_held(&selinux_state.policy_mutex)));
 	if (IS_ERR(pol)) {
 		pr_err("failed to dup selinux_policy: %ld\n", PTR_ERR(pol));
@@ -200,6 +238,16 @@ out_flush:
 	smp_mb();
 	reset_avc_cache();
 #endif
+
+#ifdef CONFIG_KSU_SUSFS
+	// Resolve the domain SIDs susfs needs (used by the setresuid/umount path and
+	// the SELinux-hide logic). Done here, after the policy is live, so it runs on
+	// every supported kernel version (HEAD~1 only did this on the < 5.10 path).
+	susfs_set_priv_app_sid();
+	susfs_set_init_sid();
+	susfs_set_ksu_sid();
+	susfs_set_zygote_sid();
+#endif // #ifdef CONFIG_KSU_SUSFS
 }
 
 #define KSU_SEPOLICY_MAX_BATCH_SIZE (8U * 1024U * 1024U)
