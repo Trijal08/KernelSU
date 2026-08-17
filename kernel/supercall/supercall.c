@@ -123,6 +123,14 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user 
             susfs_add_sus_kstat(arg, true);
             return 0;
         }
+        if (cmd == CMD_SUSFS_SET_FILE_TIME_OFFSET_UID) {
+            susfs_set_file_time_offset(arg);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_SET_UPTIME_OFFSET_UID) {
+            susfs_set_uptime_offset(arg);
+            return 0;
+        }
 #endif //#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
         if (cmd == CMD_SUSFS_ADD_TRY_UMOUNT) {
