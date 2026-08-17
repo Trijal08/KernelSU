@@ -80,23 +80,35 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user 
     if (magic2 == SUSFS_MAGIC && current_uid().val == 0) {
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
         if (cmd == CMD_SUSFS_ADD_SUS_PATH) {
-            susfs_add_sus_path(arg);
+            susfs_add_sus_path(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_ADD_SUS_PATH_UID) {
+            susfs_add_sus_path(arg, true);
             return 0;
         }
         if (cmd == CMD_SUSFS_ADD_SUS_PATH_LOOP) {
-            susfs_add_sus_path_loop(arg);
+            susfs_add_sus_path_loop(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_ADD_SUS_PATH_LOOP_UID) {
+            susfs_add_sus_path_loop(arg, true);
             return 0;
         }
 #endif //#ifdef CONFIG_KSU_SUSFS_SUS_PATH
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
         if (cmd == CMD_SUSFS_HIDE_SUS_MNTS_FOR_NON_SU_PROCS) {
-            susfs_set_hide_sus_mnts_for_non_su_procs(arg);
+            susfs_set_hide_sus_mnts_for_non_su_procs(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_HIDE_SUS_MNTS_FOR_UID) {
+            susfs_set_hide_sus_mnts_for_non_su_procs(arg, true);
             return 0;
         }
 #endif //#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
         if (cmd == CMD_SUSFS_ADD_SUS_KSTAT) {
-            susfs_add_sus_kstat(arg);
+            susfs_add_sus_kstat(arg, false);
             return 0;
         }
         if (cmd == CMD_SUSFS_UPDATE_SUS_KSTAT) {
@@ -104,7 +116,11 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user 
             return 0;
         }
         if (cmd == CMD_SUSFS_ADD_SUS_KSTAT_STATICALLY) {
-            susfs_add_sus_kstat(arg);
+            susfs_add_sus_kstat(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_ADD_SUS_KSTAT_STATICALLY_UID) {
+            susfs_add_sus_kstat(arg, true);
             return 0;
         }
 #endif //#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
@@ -116,7 +132,11 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user 
 #endif //#ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 #ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
         if (cmd == CMD_SUSFS_SET_UNAME) {
-            susfs_set_uname(arg);
+            susfs_set_uname(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_SET_UNAME_UID) {
+            susfs_set_uname(arg, true);
             return 0;
         }
 #endif //#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
@@ -128,19 +148,31 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user 
 #endif //#ifdef CONFIG_KSU_SUSFS_ENABLE_LOG
 #ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
         if (cmd == CMD_SUSFS_SET_CMDLINE_OR_BOOTCONFIG) {
-            susfs_set_cmdline_or_bootconfig(arg);
+            susfs_set_cmdline_or_bootconfig(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_SET_CMDLINE_OR_BOOTCONFIG_UID) {
+            susfs_set_cmdline_or_bootconfig(arg, true);
             return 0;
         }
 #endif //#ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
         if (cmd == CMD_SUSFS_ADD_OPEN_REDIRECT) {
-            susfs_add_open_redirect(arg);
+            susfs_add_open_redirect(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_ADD_OPEN_REDIRECT_UID) {
+            susfs_add_open_redirect(arg, true);
             return 0;
         }
 #endif //#ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 #ifdef CONFIG_KSU_SUSFS_SUS_MAP
         if (cmd == CMD_SUSFS_ADD_SUS_MAP) {
-            susfs_add_sus_map(arg);
+            susfs_add_sus_map(arg, false);
+            return 0;
+        }
+        if (cmd == CMD_SUSFS_ADD_SUS_MAP_UID) {
+            susfs_add_sus_map(arg, true);
             return 0;
         }
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_MAP
