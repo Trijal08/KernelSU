@@ -21,6 +21,10 @@ pub fn on_post_data_fs() -> Result<()> {
 
     ksucalls::report_post_fs_data();
 
+    // Apply the per-app SusFS plan (per-uid redirects / uname / cmdline / file-time
+    // offsets) BEFORE apps start, so a target app's first read already sees them.
+    crate::susfs::apply_plan();
+
     utils::umask(0);
 
     // Clear all temporary module configs early
@@ -173,6 +177,11 @@ pub fn on_boot_completed() {
 
     ksucalls::report_boot_complete();
     info!("on_boot_completed triggered!");
+
+    // Pull the framework-generated per-app SusFS plan from Settings (provider is up
+    // now), cache + apply it, then publish KernelSU + SusFS status for the UI.
+    crate::susfs::apply_from_settings();
+    crate::susfs::stamp_status();
 
     run_stage("boot-completed", false);
 }
