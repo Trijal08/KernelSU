@@ -384,8 +384,14 @@ found:
 // ksu_get_ksym_size, return symbol size, return retfail if fail.
 static noinline size_t ksu_get_ksym_size(uintptr_t symbol_addr, ptrdiff_t retfail)
 {
-	size_t offset = 0;
-	size_t symbolsize = 0;
+	/*
+	 * kallsyms_lookup_size_offset() takes unsigned long *. On LP64 that is
+	 * the same type as size_t, but on 32-bit targets size_t is unsigned int,
+	 * a distinct type of the same width, so passing size_t * there is a
+	 * constraint violation.
+	 */
+	unsigned long offset = 0;
+	unsigned long symbolsize = 0;
 
 	kallsyms_lookup_size_offset(symbol_addr, &symbolsize, &offset);
 
