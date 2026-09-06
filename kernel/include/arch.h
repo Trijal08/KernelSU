@@ -103,6 +103,54 @@
 #define SYS_FACCESSAT_SYMBOL "sys_faccessat"
 #endif
 
+#elif defined(__XTENSA__)
+
+/*
+ * Xtensa passes the first six C arguments in a2..a7 and returns in a2, but
+ * the Linux syscall ABI uses a different register set entirely -- see
+ * XTENSA_SYSCALL_ARGUMENT_REGS in arch/xtensa/include/asm/syscall.h.
+ * struct pt_regs has no dedicated sp/fp/lr members either: apart from the
+ * PC everything lives in areg[].
+ */
+
+/* C calling convention: arguments in a2..a7, return value in a2. */
+#define __PT_PARM1_REG areg[2]
+#define __PT_PARM2_REG areg[3]
+#define __PT_PARM3_REG areg[4]
+#define __PT_SYSCALL_PARM4_REG areg[5]
+#define __PT_CCALL_PARM4_REG areg[5]
+#define __PT_PARM5_REG areg[6]
+#define __PT_PARM6_REG areg[7]
+
+/* Linux/xtensa syscall ABI: a6, a3, a4, a5, a8, a9, result in a2. */
+#define __PT_PARM1_SYSCALL_REG areg[6]
+#define __PT_PARM2_SYSCALL_REG areg[3]
+#define __PT_PARM3_SYSCALL_REG areg[4]
+#define __PT_PARM4_SYSCALL_REG areg[5]
+#define __PT_PARM5_SYSCALL_REG areg[8]
+#define __PT_PARM6_SYSCALL_REG areg[9]
+
+#define __PT_RET_REG areg[0]	/* a0 is the return address register */
+#define __PT_FP_REG areg[15]	/* Works only with CONFIG_FRAME_POINTER */
+#define __PT_RC_REG areg[2]
+#define __PT_SP_REG areg[1]
+#define __PT_IP_REG pc
+
+/*
+ * xtensa does not select ARCH_HAS_SYSCALL_WRAPPER, so syscall handlers keep
+ * their plain names and take their arguments directly instead of through a
+ * struct pt_regs *.
+ */
+#define PT_REAL_REGS(regs) (regs)
+
+#define SYS_EXECVE_SYMBOL "sys_execve"
+#define SYS_REBOOT_SYMBOL "sys_reboot"
+#define SYS_NEWFSTAT_SYMBOL "sys_newfstat"
+#define SYS_FSTAT64_SYMBOL "sys_fstat64"
+#define SYS_READ_SYMBOL "sys_read"
+#define SYS_NEWFSTATAT_SYMBOL "sys_newfstatat"
+#define SYS_FACCESSAT_SYMBOL "sys_faccessat"
+
 #else
 #error "Unsupported arch"
 #endif
@@ -125,10 +173,12 @@
 #define PT_REGS_SP(x) (__PT_REGS_CAST(x)->__PT_SP_REG)
 #define PT_REGS_IP(x) (__PT_REGS_CAST(x)->__PT_IP_REG)
 
+#ifndef PT_REAL_REGS
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 16, 0)
 #define PT_REAL_REGS(regs) ((struct pt_regs *)PT_REGS_PARM1(regs))
 #else
 #define PT_REAL_REGS(regs) ((regs))
+#endif
 #endif
 
 #endif
