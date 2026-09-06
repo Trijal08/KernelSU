@@ -26,7 +26,7 @@ struct sulog_entry {
 #define SULOG_ENTRY_MAX 250
 #define SULOG_BUFSIZ SULOG_ENTRY_MAX * (sizeof (struct sulog_entry))
 
-char sulog_buf[SULOG_BUFSIZ] = { 0 };
+char sulog_buf[SULOG_BUFSIZ] __aligned(8) = { 0 };
 
 static void *sulog_buf_ptr = (void *)sulog_buf;
 static uint32_t sulog_index_next = 0;
@@ -66,6 +66,20 @@ static inline uint32_t boottime_s_get()
  *	__ATOMIC_SEQ_CST sequential consitency, full barrier, atomic op
  *
  */
+/*
+ * atomic64_set_release() is only available since v5.1 ("locking/atomics: Switch
+ * to generated fallbacks"). atomic64_set() and smp_wmb() are ancient and
+ * present on every arch, and a store barrier ahead of the relaxed store gives
+ * the store-store ordering a release store would.
+ */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#define atomic64_set_release(v, i)                                             \
+	do {                                                                   \
+		smp_wmb();                                                     \
+		atomic64_set((v), (i));                                        \
+	} while (0)
+#endif
+
 static noinline void write_sulog(uint8_t sym)
 {
 	struct sulog_entry entry;
@@ -94,8 +108,8 @@ retry:
 	if (!success)
 		goto retry; // another cpu overwrote slot, try grab another again
 
-	// 64-bit is also atomic on armv7 via ldrexd + strexd, https://godbolt.org/z/7Tqnrcceq
-	__atomic_store((uint64_t *)sulog_buf_ptr + slot, (uint64_t *)&entry, __ATOMIC_RELEASE);
+	// publish the whole 8-byte entry at once, writer publish + barrier
+	atomic64_set_release((atomic64_t *)sulog_buf_ptr + slot, *(s64 *)&entry);
 }
 
 struct sulog_entry_rcv_ptr {
