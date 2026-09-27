@@ -31,9 +31,14 @@
  */
 
 // enabled by default
+#ifdef CONFIG_KSU_SUSFS
 // NOTE: non-static so the host kernel's susfs selinux hooks (security/selinux/
-// selinuxfs.c, hooks.c from 50_add_susfs...) can reach it via `extern`.
+// selinuxfs.c, hooks.c from 50_add_susfs...) can reach it via `extern`. The
+// matching declaration in downstream/slow_avc_audit_defs.h is `extern` too.
 bool ksu_selinux_hide_enabled __read_mostly = true;
+#else
+static bool ksu_selinux_hide_enabled __read_mostly = true;
+#endif
 
 #ifdef CONFIG_KSU_SUSFS
 // ===========================================================================
